@@ -317,6 +317,8 @@ func init() {
 	}
 }
 
+// Given a curstate struct descend down the HTML hierarchy accumulating and
+// plaintexting content along the way.
 func textify(curState *state) error {
 	var curNode *html.Node
 	var err error
@@ -396,8 +398,8 @@ func textify(curState *state) error {
 
 			}
 		default:
-			// Stop checking at first noRecurse.
-
+			// Stop checking at first noRecurse. This is largely here to avoid recursing
+			// down sections of the markup that are non-content related.
 			if curState.node.DataAtom.String() != "" && stringInSlice(curState.node.DataAtom.String(), omitTags) {
 				noRecurse = true
 				break
@@ -515,7 +517,9 @@ func handleATag(curState *state) (string, error) {
 	return text, err
 }
 
-// Accumulates child content.
+// Accumulates child content. We use this rather than a normal recursion via
+// textify when we may want to accumulate all child content before handling a
+// particular node. eg. tables etc.
 func handleChildren(curState *state) (string, error) {
 	var text string
 	var err error
@@ -532,6 +536,33 @@ func handleChildren(curState *state) (string, error) {
 	curState.buf = buf
 
 	return text, err
+}
+
+// Returns true if the string 's' appears in any string in list, false otherwise.
+func stringInSlice(s string, list []string) bool {
+	for _, b := range list {
+		if strings.Contains(s, b) {
+			return true
+		}
+	}
+	return false
+}
+
+// Returns true if the node has an attribute 'key' containing a value that is a
+// a substring in any string in 'values'.
+func AttrHasString(n *html.Node, key string, values []string) bool {
+	for _, attr := range n.Attr {
+		if attr.Key == key {
+			if stringInSlice(attr.Val, values) {
+				if debug {
+					logger.Printf("node(%s) has '%s' with '%s' matching string in (%s)\n", n.DataAtom.String(), key, attr.Val, strings.Join(values, ", "))
+				}
+				return true
+			}
+			break
+		}
+	}
+	return false
 }
 
 func FromReader(reader io.Reader, url string, flags int) (string, error) {
@@ -557,30 +588,6 @@ func FromReader(reader io.Reader, url string, flags int) (string, error) {
 	}
 	text := strings.TrimSpace(newlineSpaceRe.ReplaceAllString(curState.buf.String(), "\n\n"))
 	return text, nil
-}
-
-func stringInSlice(s string, list []string) bool {
-	for _, b := range list {
-		if strings.Contains(s, b) {
-			return true
-		}
-	}
-	return false
-}
-
-func AttrHasString(n *html.Node, key string, values []string) bool {
-	for _, attr := range n.Attr {
-		if attr.Key == key {
-			if stringInSlice(attr.Val, values) {
-				if debug {
-					logger.Printf("node(%s) has '%s' with '%s' matching string in (%s)\n", n.DataAtom.String(), key, attr.Val, strings.Join(values, ", "))
-				}
-				return true
-			}
-			break
-		}
-	}
-	return false
 }
 
 func FromString(input string, url string, flags int) (string, error) {
