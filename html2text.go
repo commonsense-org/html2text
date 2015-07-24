@@ -541,6 +541,16 @@ func handleChildren(curState *state) (string, error) {
 // Returns true if the string 's' appears in any string in list, false otherwise.
 func stringInSlice(s string, list []string) bool {
 	for _, b := range list {
+		if s == b {
+			return true
+		}
+	}
+	return false
+}
+
+// Returns true if the string 's' appears in any string in list, false otherwise.
+func stringContainsSlice(s string, list []string) bool {
+	for _, b := range list {
 		if strings.Contains(s, b) {
 			return true
 		}
@@ -553,7 +563,7 @@ func stringInSlice(s string, list []string) bool {
 func AttrHasString(n *html.Node, key string, values []string) bool {
 	for _, attr := range n.Attr {
 		if attr.Key == key {
-			if stringInSlice(attr.Val, values) {
+			if stringContainsSlice(attr.Val, values) {
 				if debug {
 					logger.Printf("node(%s) has '%s' with '%s' matching string in (%s)\n", n.DataAtom.String(), key, attr.Val, strings.Join(values, ", "))
 				}
