@@ -368,7 +368,7 @@ func textify(curState *state) error {
 			var text string
 			text, err = handleChildren(curState)
 			if strings.TrimSpace(text) != "" {
-				if _, err = curState.buf.WriteString("\n" + strings.Repeat(" ", spacing*curState.indent) + "* " + text); err != nil {
+				if _, err = curState.buf.WriteString("\n" + strings.Repeat(" ", spacing*curState.indent) + "* " + strings.TrimSpace(text)); err != nil {
 					return err
 				}
 			}
@@ -391,7 +391,7 @@ func textify(curState *state) error {
 					if curState.gatherHeaders {
 						curState.headers = append(curState.headers, data)
 					} else {
-						if _, err = curState.buf.WriteString(curState.headers[curState.column] + ": " + data + "\n"); err != nil {
+						if _, err = curState.buf.WriteString(strings.TrimSpace(curState.headers[curState.column]+": "+data) + "\n"); err != nil {
 							return err
 						}
 					}
