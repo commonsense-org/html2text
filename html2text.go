@@ -91,7 +91,7 @@ var omitTags = []string{
 	"fieldset",
 	//"figure",
 	"footer",
-	"form",
+	//"form",
 	//"h1",
 	//"h2",
 	//"h3",
