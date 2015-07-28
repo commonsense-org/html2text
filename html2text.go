@@ -511,7 +511,7 @@ func handleATag(curState *state) (string, error) {
 			}
 			if link != "" {
 				linkText := strings.Trim(spacingRe.ReplaceAllString(curState.buf.String(), " "), "\r\n \t")
-				text = " (" + link + ")[" + linkText + "]"
+				text = " (" + spacingRe.ReplaceAllString(link, "") + ")[" + linkText + "]"
 			}
 			curState.buf = buf
 			break
