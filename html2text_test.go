@@ -13,7 +13,7 @@ func TestText(t *testing.T) {
 			`<li>
   <a href="/new" data-ga-click="Header, create new repository, icon:repo"><span class="octicon octicon-repo"></span> New repository</a>
 </li>`,
-			"*   (http://www.microshwhat.com/bar/soapy/new)[New repository]",
+			"*  [New repository](http://www.microshwhat.com/bar/soapy/new)",
 		},
 		{
 			`hi
@@ -30,7 +30,7 @@ func TestText(t *testing.T) {
         <li>Baz</li>
 	</ul>
 `,
-			"hi \n\n hello  (https://google.com)[google] \n\n test\n\nList: \n\n    *  (foo)[Foo] \n    *  (http://www.microshwhat.com/bar/soapy)[Barsoap] \n    * Baz",
+			"hi \n\n hello [google](https://google.com) \n\n test\n\nList: \n\n    * [Foo](foo) \n    * [Barsoap](http://www.microshwhat.com/bar/soapy) \n    * Baz",
 		},
 		// Malformed input html.
 		{
@@ -47,7 +47,14 @@ func TestText(t *testing.T) {
 		        <li>Baz</li>
 			</ul>
 		`,
-			"hi hello  (https://google.com)[google] test\n\nList: \n\n    *  (foo)[Foo] \n    *  (http://www.microshwhat.com/bar/soapy/bar/baz)[Bar] \n    * Baz",
+			"hi hello [google](https://google.com) test\n\nList: \n\n    * [Foo](foo) \n    * [Bar](http://www.microshwhat.com/bar/soapy/bar/baz) \n    * Baz",
+		},
+		{
+			`<table><tr><th>First Column</th><th>Second Column</th><th>Third Column</th></tr>
+			<tr><td>row1column1</td><td>row1column2</td><td>row1column3</td></tr>
+			<tr><td>row2column1</td><td>row2column2</td><td>row2column3</td></tr>
+			</table>`,
+			"First Column: row1column1\nSecond Column: row1column2\nThird Column: row1column3\n\nFirst Column: row2column1\nSecond Column: row2column2\nThird Column: row2column3",
 		},
 	}
 
