@@ -11,7 +11,6 @@ package html2text
 //   - aria roles
 import (
 	"bytes"
-	"fmt"
 	"golang.org/x/net/html"
 	"io"
 	"log"
@@ -19,7 +18,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"text/tabwriter"
 )
 
 const (
@@ -29,13 +27,16 @@ const (
 )
 
 type state struct {
-	node        *html.Node
-	buf         *bytes.Buffer
-	url         string
-	omitClasses bool
-	omitIds     bool
-	omitRoles   bool
-	indent      int
+	node          *html.Node
+	buf           *bytes.Buffer
+	url           string
+	omitClasses   bool
+	omitIds       bool
+	omitRoles     bool
+	indent        int
+	gatherHeaders bool
+	column        int
+	headers       []string
 }
 
 // Indent spacing (used for nested li's)
@@ -373,14 +374,11 @@ func textify(curState *state) error {
 			}
 		case "table":
 			var text string
+			// indicate we need to capture headers
+			curState.gatherHeaders = true
 			text, err = handleChildren(curState)
 			if strings.TrimSpace(text) != "" {
-				buf := &bytes.Buffer{}
-				w := new(tabwriter.Writer)
-				w.Init(buf, 0, 4, 2, ' ', tabwriter.Debug)
-				fmt.Fprint(w, "|"+strings.Replace(text, "\n", "\n|", -1))
-				w.Flush()
-				if _, err = curState.buf.WriteString("\n\n" + buf.String() + "\n\n"); err != nil {
+				if _, err = curState.buf.WriteString("\n\n" + text + "\n\n"); err != nil {
 					return err
 				}
 			}
@@ -390,12 +388,14 @@ func textify(curState *state) error {
 			if strings.TrimSpace(text) != "" {
 				data := strings.TrimSpace(spacingRe.ReplaceAllString(text, " "))
 				if len(data) > 0 {
-					if _, err = curState.buf.WriteString(data); err != nil {
-						return err
+					if curState.gatherHeaders {
+						curState.headers = append(curState.headers, data)
+					} else {
+						if _, err = curState.buf.WriteString(curState.headers[curState.column] + ": " + data + "\n"); err != nil {
+							return err
+						}
 					}
 				}
-			} else {
-
 			}
 		default:
 			// Stop checking at first noRecurse. This is largely here to avoid recursing
@@ -461,13 +461,16 @@ func textify(curState *state) error {
 	case "ul", "ol":
 		curState.indent--
 	case "td", "th":
-		if err = curState.buf.WriteByte('\t'); err != nil {
-			return err
-		}
+		curState.column++
 	case "tr":
+		// Stop gathering headers
+		curState.column = 0
+		curState.gatherHeaders = false
 		if err = curState.buf.WriteByte('\n'); err != nil {
 			return err
 		}
+	case "table":
+		curState.headers = []string{}
 	}
 
 	if stringInSlice(curState.node.DataAtom.String(), breakingTags) {
