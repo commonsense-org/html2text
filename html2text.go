@@ -349,7 +349,8 @@ func textify(curState *state) error {
 	switch curState.node.Type {
 	case html.TextNode:
 		data := strings.Trim(spacingRe.ReplaceAllString(curState.node.Data, " "), "\r\n\t")
-		if len(data) > 0 {
+		// We want to write non-whitespace only strings but don't want to strip leading/trailing spaces on an actual string.
+		if len(strings.TrimSpace(data)) > 0 {
 			if _, err = curState.buf.WriteString(data); err != nil {
 				return err
 			}
@@ -378,7 +379,7 @@ func textify(curState *state) error {
 			curState.gatherHeaders = true
 			text, err = handleChildren(curState)
 			if strings.TrimSpace(text) != "" {
-				if _, err = curState.buf.WriteString("\n\n" + text + "\n\n"); err != nil {
+				if _, err = curState.buf.WriteString("\n\n" + strings.TrimSpace(text) + "\n\n"); err != nil {
 					return err
 				}
 			}
@@ -391,8 +392,14 @@ func textify(curState *state) error {
 					if curState.gatherHeaders {
 						curState.headers = append(curState.headers, data)
 					} else {
-						if _, err = curState.buf.WriteString(strings.TrimSpace(curState.headers[curState.column]+": "+data) + "\n"); err != nil {
-							return err
+						if curState.column < len(curState.headers) {
+							if _, err = curState.buf.WriteString(strings.TrimSpace(curState.headers[curState.column]+": "+data) + "\n"); err != nil {
+								return err
+							}
+						} else {
+							if _, err = curState.buf.WriteString(strings.TrimSpace(data) + "\n"); err != nil {
+								return err
+							}
 						}
 					}
 				}
